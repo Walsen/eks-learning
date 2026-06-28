@@ -160,6 +160,20 @@ the cluster's installed Karpenter CRDs recognize `karpenter.sh/v1` and
 3. Confirm: `kubectl get nodeclaims` and `kubectl get nodes` should show
    Karpenter-provisioned workload nodes once unschedulable pods appear.
 
+## Operating the bootstrap floor (justfile)
+
+`eks-platform/justfile` provides recipes (run from `eks-platform/`):
+
+- `just floor-up` — scale the floor to 2 nodes while actively using/testing.
+- `just floor-down` — scale back to 1 node when leaving (the cost-resting state).
+- `just floor-status` — show the node group scaling config and current nodes.
+- `just check` / `just plan` / `just apply` — terraform shortcuts.
+
+These scale the `system_nodes` group directly via the AWS API (instant, no
+apply). Terraform's baseline is `desired=1`, so a later `terraform apply` resets
+the floor to 1 — which is the intended resting state. `just` is provided via
+devbox.
+
 ## Known follow-ups (not addressed here)
 
 - **Spot-only NodePool + stateful EBS:** Prometheus/Grafana use RWO EBS
