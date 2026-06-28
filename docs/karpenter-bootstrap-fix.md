@@ -95,6 +95,17 @@ Also: replaced a dead `settings = {}` block (this module reads Helm values via
 pins Karpenter to **1 replica** at `0.5` vCPU / `512Mi` requests for the
 single-node floor.
 
+**Karpenter chart pinned to 1.1.0 (not 1.0.0).** The 1.0.x chart ships a
+post-install hook (v1beta1->v1 CRD conversion migration) that runs `kubectl` via
+`public.ecr.aws/bitnami/kubectl`. Bitnami removed their public image catalog on
+2025-08-28, so that image is unpullable -> the hook hangs in `ImagePullBackOff`
+-> the Helm release sticks in `pending-upgrade` -> `terraform apply` fails. The
+hook and conversion webhooks were removed in chart 1.1.0; since this is a fresh
+v1 install there is nothing to migrate. Recovering a cluster already stuck in
+`pending-upgrade` also requires clearing the pending Helm release record (delete
+the `sh.helm.release.v1.karpenter.v2` secret and the stuck hook job) before
+re-applying.
+
 ### 5. `providers.tf` — pin `helm` and `kubernetes` providers
 Only `aws` was pinned. The `helm` and `kubernetes` providers were unpinned:
 - **Helm v3 removed** the nested `provider "helm" { kubernetes { ... } }`

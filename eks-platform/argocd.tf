@@ -18,7 +18,15 @@ module "eks_blueprints_addons" {
   # Increased timeout for Karpenter installation
   enable_karpenter = true
   karpenter = {
-    chart_version = "1.0.0"
+    # 1.1.0 (not 1.0.0): the 1.0.x chart ships a post-install hook that runs
+    # `kubectl patch` (v1beta1->v1 CRD conversion migration) using the image
+    # public.ecr.aws/bitnami/kubectl. Bitnami removed their public image catalog
+    # (2025-08-28), so that image is unpullable -> the hook hangs in
+    # ImagePullBackOff -> the Helm release sticks in `pending-upgrade` -> apply
+    # fails. The hook (and conversion webhooks, which also break ArgoCD-managed
+    # NodePools) were removed in 1.1.0. We do a fresh v1 install, so there is
+    # nothing to migrate.
+    chart_version = "1.1.0"
     timeout       = 600
     # NOTE: this module passes Helm values via `set` (list of {name,value}); a
     # `settings = {}` map is NOT read by the module and would be silently ignored.
