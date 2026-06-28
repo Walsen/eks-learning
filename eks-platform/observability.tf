@@ -102,7 +102,11 @@ module "lgtm_pod_identity" {
   version  = "~> 1.7"
   for_each = local.lgtm_components
 
-  name = "${local.cluster_name}-${each.key}-pod-identity"
+  # Use the exact name (not name_prefix). The module's name_prefix is capped at
+  # 38 chars; "<cluster>-<component>-pod-identity-" exceeds that. The fixed name
+  # is ~40 chars, well under the IAM role 64-char limit.
+  name            = "${local.cluster_name}-${each.key}-pod-identity"
+  use_name_prefix = false
 
   attach_custom_policy      = true
   custom_policy_description = "S3 access for ${each.key} (LGTM)"
