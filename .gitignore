@@ -1,0 +1,84 @@
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+# Local .terraform directories (provider/module caches)
+**/.terraform/*
+
+# State files - may contain secrets, never commit
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# State lock info
+.terraform.tfstate.lock.info
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files that commonly contain secrets
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output files
+*.tfplan
+*.tfplan.*
+plan.out
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Keep the provider lock file under version control (do NOT ignore):
+#   .terraform.lock.hcl
+
+# ---------------------------------------------------------------------------
+# Devbox / Nix
+# ---------------------------------------------------------------------------
+.devbox/
+
+# ---------------------------------------------------------------------------
+# direnv
+# ---------------------------------------------------------------------------
+.direnv/
+.envrc.local
+
+# ---------------------------------------------------------------------------
+# Kubernetes / cloud credentials
+# ---------------------------------------------------------------------------
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+.kube/
+*.pem
+*.key
+
+# ---------------------------------------------------------------------------
+# OS files
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Editor / IDE
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Logs / temp
+# ---------------------------------------------------------------------------
+*.log
+*.tmp

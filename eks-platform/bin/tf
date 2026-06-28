@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Directory-scoped shortcut for terraform.
+# Only available while inside eks-platform (added to PATH via .envrc + direnv).
+exec terraform "$@"

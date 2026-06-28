@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.3/.schema/devbox.schema.json",
+  "packages": {
+    "awscli2":   "latest",
+    "kubectl":   "latest",
+    "k9s":       "latest",
+    "terraform": "latest",
+    "helm": {
+      "version":            "latest",
+      "excluded_platforms": ["x86_64-darwin"]
+    },
+    "git":       "latest",
+    "infracost": "latest",
+    "eksctl":    "latest"
+  },
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}
