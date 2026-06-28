@@ -12,7 +12,7 @@ module "eks_blueprints_addons" {
   argocd = {
     namespace        = "argocd"
     create_namespace = true
-    chart_version    = "7.3.11" 
+    chart_version    = "7.3.11"
   }
 
   # Increased timeout for Karpenter installation
@@ -23,7 +23,15 @@ module "eks_blueprints_addons" {
     settings = {
       "controller.image.repository" = "public.ecr.aws/karpenter/controller"
       # This overrides the hook image to a standard, reliable version
-      "webhook.image.repository"    = "public.ecr.aws/karpenter/webhook"
+      "webhook.image.repository" = "public.ecr.aws/karpenter/webhook"
     }
+  }
+
+  # Give the Karpenter node IAM role a deterministic name (default uses a random
+  # name_prefix). The EC2NodeClass in the GitOps repo references this exact name via
+  # spec.role, so it must be stable.
+  karpenter_node = {
+    iam_role_use_name_prefix = false
+    iam_role_name            = "karpenter-node-${module.eks.cluster_name}"
   }
 }

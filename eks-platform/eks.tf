@@ -23,25 +23,35 @@ module "eks" {
     coredns                = {}
     kube-proxy             = {}
     vpc-cni                = {}
-    eks-pod-identity-agent = {} 
+    eks-pod-identity-agent = {}
     aws-ebs-csi-driver     = { most_recent = true }
   }
 
-# 3. The System Bootstrap Node Group
-#   eks_managed_node_groups = {
-#     system_nodes = {
-#       # Amazon Linux 2023 is the new standard over AL2
-#       ami_type       = "AL2023_x86_64_STANDARD"
-#       instance_types = ["t3.medium"] # Big enough to hold LGTM & Karpenter controllers
-      
-#       min_size     = 2
-#       max_size     = 3
-#       desired_size = 2
-      
-#       # We put system nodes in private subnets
-#       subnet_ids = module.vpc.private_subnets
-#     }
-#   }
+  # 3. The System Bootstrap Node Group
+  # This fixed-size group is ONLY the bootstrap floor: it runs the cluster-critical
+  # controllers (Karpenter, ArgoCD, CoreDNS, EBS CSI). Karpenter then provisions all
+  # dynamic workload nodes. instance_types here does NOT constrain Karpenter's sizing.
+  eks_managed_node_groups = {
+    system_nodes = {
+      # Amazon Linux 2023 is the new standard over AL2
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.medium"] # Big enough to hold LGTM & Karpenter controllers
+
+      min_size     = 2
+      max_size     = 3
+      desired_size = 2
+
+      # We put system nodes in private subnets
+      subnet_ids = module.vpc.private_subnets
+    }
+  }
+
+  # Karpenter discovers the security group to attach to provisioned nodes via this tag.
+  # The matching tag on private subnets is set in main.tf. Without this, an
+  # EC2NodeClass using securityGroupSelectorTerms{karpenter.sh/discovery} finds nothing.
+  node_security_group_tags = {
+    "karpenter.sh/discovery" = local.cluster_name
+  }
 }
 
 # --- PREREQUISITE FOR LGTM STORAGE (EBS CSI DRIVER IAM) ---
@@ -49,7 +59,7 @@ module "aws_ebs_csi_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "~> 1.7" # Modern version for Pod Identity
 
-  name = "aws-ebs-csi-pod-identity"
+  name                      = "aws-ebs-csi-pod-identity"
   attach_aws_ebs_csi_policy = true
 
   # This maps the AWS IAM Role directly to the Kubernetes Service Account
@@ -62,15 +72,12 @@ module "aws_ebs_csi_pod_identity" {
   }
 }
 
-# 1. Install Karpenter via Blueprints
-module "karpenter" {
-  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "~> 20.31"
-
-  cluster_name = module.eks.cluster_name
-  enable_irsa  = true
-  irsa_oidc_provider_arn = module.eks.oidc_provider_arn
-}
+# NOTE: Karpenter is installed and fully managed by the `eks_blueprints_addons`
+# module in argocd.tf (enable_karpenter = true). That module creates the controller
+# IRSA role, the node IAM role + instance profile, the SQS interruption queue and
+# EventBridge rules, AND installs the Helm chart. A second standalone
+# `terraform-aws-modules/eks//modules/karpenter` here would duplicate all of that
+# (orphaned IAM roles, a second unused SQS queue) and is intentionally NOT used.
 
 # Output the command to update your local kubeconfig
 output "configure_kubectl" {
