@@ -1,7 +1,7 @@
 locals {
-  name   = "enterprise-eks-vpc"
-  region = "us-east-1"
-  vpc_cidr = "10.0.0.0/16"
+  name         = "enterprise-eks-vpc"
+  region       = "us-east-1"
+  vpc_cidr     = "10.0.0.0/16"
   cluster_name = "enterprise-eks-cluster"
 }
 
@@ -27,15 +27,15 @@ module "vpc" {
   enable_dns_support   = true
 
   # --- REQUIRED TAGS FOR EKS ROUTING ---
-  
+
   public_subnet_tags = {
-    "kubernetes.io/role/elb" = "1"
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared" 
+    "kubernetes.io/role/elb"                      = "1"
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb"             = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "karpenter.sh/discovery" = local.cluster_name
+    "karpenter.sh/discovery"                      = local.cluster_name
   }
 }
