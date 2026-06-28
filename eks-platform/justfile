@@ -53,7 +53,7 @@ floor-up:
     NG=$(aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text)
     echo "Scaling ${NG} -> desired=2 ..."
     aws eks update-nodegroup-config --cluster-name {{cluster}} --region {{region}} \
-      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=2,desiredSize=2
+      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=3,desiredSize=2
     echo "Requested. Reminder: a later 'terraform apply' resets the floor to 1."
 
 # Scale the bootstrap floor DOWN to 1 node (use when leaving)
@@ -63,7 +63,7 @@ floor-down:
     NG=$(aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text)
     echo "Scaling ${NG} -> desired=1 ..."
     aws eks update-nodegroup-config --cluster-name {{cluster}} --region {{region}} \
-      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=2,desiredSize=1
+      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=3,desiredSize=1
     echo "Requested."
 
 # Show the floor's current scaling config and nodes

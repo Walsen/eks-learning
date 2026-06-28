@@ -28,20 +28,21 @@ module "eks" {
   }
 
   # 3. The System Bootstrap Node Group
-  # This is the minimal bootstrap floor: a SINGLE node that runs the
-  # cluster-critical controllers (Karpenter, CoreDNS, EBS CSI). Karpenter then
-  # provisions all dynamic workload nodes (ArgoCD, monitoring, apps) on its own
-  # nodes. instance_types here does NOT constrain Karpenter's sizing.
-  # max_size = 2 allows a surge during node-group updates for near-zero downtime.
+  # The bootstrap floor that runs the cluster-critical controllers (Karpenter,
+  # CoreDNS, EBS CSI). Karpenter provisions all dynamic workload nodes (ArgoCD,
+  # monitoring, apps) on its own nodes; instance_types here does NOT constrain
+  # Karpenter's sizing. Baseline is 2 nodes for controller headroom/HA while in
+  # use; scale down to 1 when idle via `just floor-down`. max_size = 3 leaves
+  # surge room for rolling node-group updates.
   eks_managed_node_groups = {
     system_nodes = {
       # Amazon Linux 2023 is the new standard over AL2
       ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t3.medium"] # 2 vCPU / 4 GiB: fits the trimmed floor
+      instance_types = ["t3.medium"] # 2 vCPU / 4 GiB
 
       min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      max_size     = 3
+      desired_size = 2
 
       # We put system nodes in private subnets
       subnet_ids = module.vpc.private_subnets
