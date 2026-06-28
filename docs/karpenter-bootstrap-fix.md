@@ -41,10 +41,16 @@ and `aws ec2 describe-instances` (no instances).
 ## Platform repo changes (Terraform)
 
 ### 1. `eks.tf` — restore the bootstrap node group (the fix for the outage)
-Re-enabled the `system_nodes` EKS managed node group (2× `t3.medium`). This is
-the **bootstrap floor**: it runs the cluster-critical controllers. It does
-**not** constrain Karpenter — `instance_types` here only governs this ASG;
-Karpenter sizes workload nodes independently from its NodePool.
+Re-enabled the `system_nodes` EKS managed node group as a **single** `t3.medium`
+(`min=1, desired=1, max=2`). This is the **bootstrap floor**: it runs the
+cluster-critical controllers (Karpenter, CoreDNS, EBS CSI). It does **not**
+constrain Karpenter — `instance_types` here only governs this node; Karpenter
+sizes workload nodes independently from its NodePool. `max=2` allows a surge
+during node-group updates for near-zero downtime.
+
+Because the floor is a single t3.medium (~1.93 vCPU allocatable), Karpenter is
+pinned to **1 replica** with modest requests (see argocd.tf below) — the chart's
+default 2 replicas × 1 vCPU would not fit alongside CoreDNS and EBS CSI.
 
 ### 2. `eks.tf` — add Karpenter security-group discovery tag
 ```hcl
@@ -83,6 +89,11 @@ karpenter_node = {
 By default the node role uses a random `name_prefix`. The GitOps `EC2NodeClass`
 must reference the role name exactly via `spec.role`, so the name is now stable
 (`karpenter-node-enterprise-eks-cluster`).
+
+Also: replaced a dead `settings = {}` block (this module reads Helm values via
+`set`, not `settings`, so it was silently ignored) with a proper `set` list that
+pins Karpenter to **1 replica** at `0.5` vCPU / `512Mi` requests for the
+single-node floor.
 
 ### 5. `providers.tf` — pin `helm` and `kubernetes` providers
 Only `aws` was pinned. The `helm` and `kubernetes` providers were unpinned:

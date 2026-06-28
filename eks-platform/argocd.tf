@@ -20,11 +20,25 @@ module "eks_blueprints_addons" {
   karpenter = {
     chart_version = "1.0.0"
     timeout       = 600
-    settings = {
-      "controller.image.repository" = "public.ecr.aws/karpenter/controller"
-      # This overrides the hook image to a standard, reliable version
-      "webhook.image.repository" = "public.ecr.aws/karpenter/webhook"
-    }
+    # NOTE: this module passes Helm values via `set` (list of {name,value}); a
+    # `settings = {}` map is NOT read by the module and would be silently ignored.
+    # Single-node floor: run ONE Karpenter replica with modest requests so the
+    # controller + CoreDNS + EBS CSI all fit on one t3.medium (~1.93 vCPU
+    # allocatable). The chart's default 2 replicas x 1 vCPU would not fit.
+    set = [
+      {
+        name  = "replicas"
+        value = "1"
+      },
+      {
+        name  = "controller.resources.requests.cpu"
+        value = "0.5"
+      },
+      {
+        name  = "controller.resources.requests.memory"
+        value = "512Mi"
+      },
+    ]
   }
 
   # Give the Karpenter node IAM role a deterministic name (default uses a random
