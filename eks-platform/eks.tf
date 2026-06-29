@@ -20,9 +20,20 @@ module "eks" {
 
   # 2. Modern Add-ons (Notice the Pod Identity Agent)
   cluster_addons = {
-    coredns                = {}
-    kube-proxy             = {}
-    vpc-cni                = {}
+    coredns    = {}
+    kube-proxy = {}
+    # Prefix delegation raises the per-node pod cap dramatically (e.g. t3.medium
+    # ~17 -> ~110 pods) by assigning /28 IP prefixes instead of secondary IPs.
+    # Without it, small nodes hit "Too many pods" and DaemonSets/extra pods stay
+    # Pending. Takes effect on NEW ENIs — recycle existing nodes after applying.
+    vpc-cni = {
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
+    }
     eks-pod-identity-agent = {}
     aws-ebs-csi-driver     = { most_recent = true }
   }
