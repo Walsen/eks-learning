@@ -11,7 +11,8 @@
     },
     "git":       "latest",
     "infracost": "latest",
-    "eksctl":    "latest"
+    "eksctl":    "latest",
+    "just":      "latest"
   },
   "shell": {
     "init_hook": [

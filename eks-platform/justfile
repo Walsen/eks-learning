@@ -1,0 +1,77 @@
+# Justfile for the EKS platform.
+# Run `just` (or `just --list`) to see available recipes.
+# Assumes the devbox/direnv environment is active (provides terraform, aws,
+# kubectl, just). All recipes run from the eks-platform directory.
+
+set shell := ["bash", "-uc"]
+
+cluster := "enterprise-eks-cluster"
+region  := "us-east-1"
+
+# Show available recipes
+default:
+    @just --list
+
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+
+# terraform init
+init:
+    terraform init
+
+# terraform plan
+plan:
+    terraform plan
+
+# terraform apply
+apply:
+    terraform apply
+
+# fmt + validate
+check:
+    terraform fmt && terraform validate
+
+# ---------------------------------------------------------------------------
+# Bootstrap floor scaling (the system_nodes managed node group)
+#
+# The floor is the single-node baseline that runs Karpenter/CoreDNS/EBS-CSI.
+# Scale to 2 while actively using/testing the cluster, back to 1 when you leave.
+# Workload capacity comes from Karpenter regardless; the 2nd node is controller
+# headroom. NOTE: Terraform's baseline is desired=1, so a later `terraform
+# apply` will reset the floor to 1 (harmless — that's the intended resting state).
+# ---------------------------------------------------------------------------
+
+# Print the resolved system node group name
+floor-name:
+    @aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text
+
+# Scale the bootstrap floor UP to 2 nodes (use while testing)
+floor-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    NG=$(aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text)
+    echo "Scaling ${NG} -> desired=2 ..."
+    aws eks update-nodegroup-config --cluster-name {{cluster}} --region {{region}} \
+      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=3,desiredSize=2
+    echo "Requested. Reminder: a later 'terraform apply' resets the floor to 1."
+
+# Scale the bootstrap floor DOWN to 1 node (use when leaving)
+floor-down:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    NG=$(aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text)
+    echo "Scaling ${NG} -> desired=1 ..."
+    aws eks update-nodegroup-config --cluster-name {{cluster}} --region {{region}} \
+      --nodegroup-name "${NG}" --scaling-config minSize=1,maxSize=3,desiredSize=1
+    echo "Requested."
+
+# Show the floor's current scaling config and nodes
+floor-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    NG=$(aws eks list-nodegroups --cluster-name {{cluster}} --region {{region}} --query 'nodegroups[0]' --output text)
+    echo "Node group: ${NG}"
+    aws eks describe-nodegroup --cluster-name {{cluster}} --region {{region}} \
+      --nodegroup-name "${NG}" --query 'nodegroup.scalingConfig'
+    kubectl get nodes -l "eks.amazonaws.com/nodegroup=${NG}" 2>/dev/null || true
